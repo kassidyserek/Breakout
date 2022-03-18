@@ -23,7 +23,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var score = 0
     var lives = 3
     var removedBricks = 0
-    
+    var barrier = SKSpriteNode()
     
     override func didMove(to view: SKView) {
         // this stuff happens once (when the app opens)
@@ -41,11 +41,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         makePaddle()
         makeBricks()
         updateLabels()
+        makeBarrier()
     }
     
     func kickBall() {
         ball.physicsBody?.isDynamic = true
-        ball.physicsBody?.applyImpulse(CGVector(dx: 3, dy: 5))
+        ball.physicsBody?.applyImpulse(CGVector(dx: Int.random(in: -5...5), dy: 5))
     }
     
     func updateLabels() {
@@ -177,25 +178,28 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func didBegin(_ contact: SKPhysicsContact) {
         // ask each brick, "Is it you?"
         for brick in bricks {
-                    if contact.bodyA.node == brick ||
-                        contact.bodyB.node == brick {
-                        score += 1
-                        updateLabels()
-                        if brick.color == .blue {
-                            brick.color = .orange   // blue bricks turn orange
-                        }
-                        else if brick.color == .orange {
-                            brick.color = .green    // orange bricks turn green
-                        }
-                        else {  // must be a green brick, which get removed
-                            brick.removeFromParent()
-                            removedBricks += 1
-                            if removedBricks == bricks.count {
-                                gameOver(winner: true)
-                            }
-                        }
+            if contact.bodyA.node == brick ||
+                contact.bodyB.node == brick {
+                score += 1
+                // increase ball velocity by 2%
+                ball.physicsBody!.velocity.dx = ball.physicsBody!.velocity.dx * CGFloat(1.02)
+                ball.physicsBody!.velocity.dy = ball.physicsBody!.velocity.dy * CGFloat(1.02)
+                updateLabels()
+                if brick.color == .blue {
+                    brick.color = .orange   // blue bricks turn orange
+                }
+                else if brick.color == .orange {
+                    brick.color = .green    // orange bricks turn green
+                }
+                else {  // must be a green brick, which get removed
+                    brick.removeFromParent()
+                    removedBricks += 1
+                    if removedBricks == bricks.count {
+                        gameOver(winner: true)
                     }
                 }
+            }
+        }
         if contact.bodyA.node?.name == "loseZone" ||
             contact.bodyB.node?.name == "loseZone" {
             lives -= 1
@@ -244,14 +248,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     }
     
+    //creates a barrier in which can either aid in breaking bricks faster or create more difficulties as an obstacle in the way
+    func makeBarrier() {
+        barrier.removeFromParent()
+        barrier = SKSpriteNode(color: .cyan, size: CGSize(width: 90, height: 5))
+        barrier.position = CGPoint(x: frame.midX, y: frame.midY + 75)
+        barrier.name = "barrier"
+        barrier.physicsBody = SKPhysicsBody(rectangleOf: barrier.size)
+        barrier.physicsBody?.isDynamic = false
+        addChild(barrier)
+    }
+    
     override func update(_ currentTime: TimeInterval) {
-            if abs(ball.physicsBody!.velocity.dx) < 100 {
-                // ball has stalled in x direction, so kick it randomly horizontally
-                ball.physicsBody?.applyImpulse(CGVector(dx: Int.random(in: -3...3), dy: 0))
-            }
-            if abs(ball.physicsBody!.velocity.dy) < 100 {
-                // ball has stalled in y direct, so kick it randomly vertically
-                ball.physicsBody?.applyImpulse(CGVector(dx: 0, dy: Int.random(in: -3...3)))
-            }
+        if abs(ball.physicsBody!.velocity.dx) < 100 {
+            // ball has stalled in x direction, so kick it randomly horizontally
+            ball.physicsBody?.applyImpulse(CGVector(dx: Int.random(in: -3...3), dy: 0))
         }
+        if abs(ball.physicsBody!.velocity.dy) < 100 {
+            // ball has stalled in y direct, so kick it randomly vertically
+            ball.physicsBody?.applyImpulse(CGVector(dx: 0, dy: Int.random(in: -3...3)))
+        }
+    }
 }
